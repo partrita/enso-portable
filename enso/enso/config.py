@@ -87,5 +87,5 @@ ABOUT_BOX_XML = u"<p><command>Enso</command> Community Edition</p>" \
     "<p>Copyright &#169; 2008-2009 <command>Enso Community</command></p>" \
     "<p>Copyright &#169; 2011-2012 <command>g/christensen (gchristnsn@gmail.com)</command></p>" \
 
-
-# vim:set tabstop=4 shiftwidth=4 expandtab:
+# Fonts setting
+DEFAULT_FONTS = "c:/WINDOWS/Fonts/malgun.ttf"
