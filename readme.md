@@ -9,6 +9,7 @@ v0.1.6
 ---
 
 <img src="https://raw.github.com/GChristensen/enso-portable/master/screen.jpg" />
+<img src="https://raw.github.com/partrita/enso-portable/master/KakaoTalk_20160520_225837159.png" />
 
 Description: the Enso Launcher application allows to launch programs found in the Windows Start menu (or picked manually using the `learn as open' command) and perform many other operations with text command line 
 triggered by pressing the CAPSLOCK key. It's possible to create your own commands using Python programming language.
