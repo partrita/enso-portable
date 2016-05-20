@@ -8,7 +8,6 @@ v0.1.6
 
 ---
 
-<img src="https://raw.github.com/GChristensen/enso-portable/master/screen.jpg" />
 <img src="https://github.com/partrita/enso-portable/blob/python-2.7/KakaoTalk_20160520_225837159.png?raw=true" />
 
 
