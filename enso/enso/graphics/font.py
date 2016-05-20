@@ -44,8 +44,10 @@
 # Imports
 # ----------------------------------------------------------------------------
 
-from enso import cairo
+#imports config file for fonts setting
+import enso.config
 
+from enso import cairo
 from enso.utils.memoize import memoized
 
 
@@ -132,13 +134,11 @@ class Font:
         """
 
 
-        # TODO THE WINDOWS SPECIAL CASE WITH THE HARD-CODED PATH TO ARIAL
-        # IS A HORRIBLE HACK AND MUST BE FIXED ASAP (besides, Arial is
-        # ugly).
+
         import sys
         if sys.platform.startswith( "win" ):
             cairoContext.select_font_face(
-                "c:/WINDOWS/Fonts/arial.ttf",
+                enso.config.DEFAULT_FONTS,,
                 self.slant,
                 cairo.FONT_WEIGHT_NORMAL
                 )
