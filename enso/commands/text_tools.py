@@ -57,9 +57,15 @@ def cmd_unaccent(ensoapi):
 
 
 def cmd_datetime(ensoapi):
-    """ Insert short datetime string in the form yymmdd-HHMMss """
+    """ Insert short datetime string in the form yy/mm/dd-HHMM """
     from time import localtime, strftime
-    dt = strftime("%y%m%d-%H%M%S", localtime())
+    dt = strftime("%y/%m/%d-%H:%M", localtime())
+    ensoapi.set_selection(dt)
+
+def cmd_today(ensoapi):
+    """ Insert short date string in the form yyyy/mm/dd"""
+    from time import localtime, strftime
+    dt = strftime("%Y/%m/%d", localtime())
     ensoapi.set_selection(dt)
 
 
