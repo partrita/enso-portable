@@ -333,9 +333,8 @@ class cWindow:
 ## I think this is no longer supported?
 ##  def BringToFront(self):
 ##      win32gui.BringWindowToFront(self._hwnd)
-
-    def SetAsForegroundWindow(self):
-        win32gui.SetForegroundWindow(self._hwnd)
+#    def SetAsForegroundWindow(self):
+#        win32gui.SetForegroundWindow(self._hwnd)
 
     def Close(self):
         win32gui.SendMessage(self._hwnd, win32con.WM_CLOSE, 0, 0)
@@ -744,7 +743,8 @@ class RestoreAllWindows(CommandObject):
                 continue
             if is_app_window(win.GetHwnd()) and not is_maximized_window(win.GetHwnd()):
                 win.Restore()
-        fore_win.SetAsForegroundWindow()
+# not working anymore
+#        fore_win.SetAsForegroundWindow()
         win32gui.SetWindowPos(
             fore_win.GetHwnd(),
             win32con.HWND_NOTOPMOST,
