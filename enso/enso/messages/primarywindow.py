@@ -42,13 +42,14 @@
 
 import logging
 
+from enso import config
 from enso import graphics
 from enso.graphics import xmltextlayout
 from enso.graphics.measurement import inchesToPoints
 from enso.graphics import rounded_rect
 from enso.utils.xml_tools import escape_xml
 from enso.messages.windows import MessageWindow, computeWidth
-
+from enso.quasimode import layout
 
 # ----------------------------------------------------------------------------
 # Constants
@@ -143,7 +144,7 @@ class PrimaryMsgWind( MessageWindow ):
 
         # Set the current primary message, and draw it.
         self.__msg = message
-        self.__drawMessage()
+        self.__drawMessage(message.isForeground())
 
         # Now, set a time-responder to wait for a bit, so that the
         # user doesn't accidentally clear the message before it registers
@@ -239,7 +240,7 @@ class PrimaryMsgWind( MessageWindow ):
         if self.__waiting:
             self.__evtManager.removeResponder( self.waitTick )
 
-    def __drawMessage( self ):
+    def __drawMessage( self, foreground = False ):
         """
         Draws the current message to the underlying Cario context.
         """
@@ -271,7 +272,7 @@ class PrimaryMsgWind( MessageWindow ):
         # Set the window opacity (which can be left at 0 by the animation)
         self._wind.setOpacity( 255 )
         # Show and update the window.
-        self.show()
+        self.show(foreground)
 
 
     def __isOneLineMsg( self, msgDoc, capDoc ):
@@ -430,7 +431,7 @@ _styles.add(
     "document",
     margin_top = "0.0pt",
     margin_bottom = "0.0pt",
-    font_family = "Gentium",
+    font_family = config.UI_FONT,
     font_style = "normal",
     max_lines = "0",
     ellipsify = "false",
@@ -439,21 +440,21 @@ _styles.add(
 
 _styles.add(
     "p",
-    color = "#ffffff",
+    color = layout.WHITE,
     margin_top = "0pt",
     margin_bottom = "0pt",
     )
 
 _styles.add(
     "caption",
-    color = "#669900",
+    color = layout.DESIGNER_GREEN,
     margin_top = "%spt" % CAPTION_OFFSET,
     margin_bottom = "0pt",
     )
 
 _styles.add(
     "command",
-    color = "#669900",
+    color = layout.DESIGNER_GREEN,
     )
 
 # The tag aliases for primary message XML.
@@ -492,7 +493,7 @@ def layoutMessageXml( xmlMarkup, width, size, height, ellipsify="false",
             _styles,
             _tagAliases
             )
-    except Exception, e:
+    except Exception as e:
         if raiseLayoutExceptions:
             raise
         logging.warn( "Could not layout message text %s; got error %s"

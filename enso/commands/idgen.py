@@ -20,7 +20,7 @@ cmd_guid.valid_args = ["lowercase", "uppercase", "numeric"]
 
 random.seed()
 
-boundsParser = re.compile(r"(?:from ?(\d+))? ?(?:to ?(\d+))?")
+boundsParser = re.compile(r"(?:\s*from\s+?(\d+))?\s+?(?:to\s+?(\d+))?")
 
 def cmd_random(ensoapi, from_num_to_num = ""):
     """Replaces selected text with a random number"""
@@ -31,9 +31,12 @@ def cmd_random(ensoapi, from_num_to_num = ""):
     if not s_from is None:
         from_ = int(s_from)
 
-    to = sys.maxint
+    to = sys.maxsize
     s_to = m.group(2)
     if not s_to is None:
         to = int(s_to)
 
     ensoapi.set_selection({"text": str(random.randint(from_, to))})
+
+
+CATEGORY = "random"

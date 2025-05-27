@@ -130,24 +130,11 @@ class Font:
         """
         Sets the cairo context's current font to this font.
         """
-
-
-        # TODO THE WINDOWS SPECIAL CASE WITH THE HARD-CODED PATH TO ARIAL
-        # IS A HORRIBLE HACK AND MUST BE FIXED ASAP (besides, Arial is
-        # ugly).
-        import sys
-        if sys.platform.startswith( "win" ):
-            cairoContext.select_font_face(
-                "c:/WINDOWS/Fonts/arial.ttf",
-                self.slant,
-                cairo.FONT_WEIGHT_NORMAL
-                )
-        else:
-            cairoContext.select_font_face(
-                self.name,
-                self.slant,
-                cairo.FONT_WEIGHT_NORMAL
-                )
+        cairoContext.select_font_face(
+            self.name,
+            self.slant,
+            cairo.FONT_WEIGHT_NORMAL
+            )
 
         cairoContext.set_font_size( self.size )
 
@@ -170,7 +157,7 @@ class FontGlyph:
         
         # Encode the character to UTF-8 because that's what the cairo
         # API uses.
-        self.charAsUtf8 = char.encode("UTF-8")
+        self.charAsUtf8 = char # char.encode("UTF-8")
         self.char = char
         self.font = font
 

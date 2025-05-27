@@ -53,7 +53,12 @@ import logging
 import traceback
 
 from win32api import GetKeyState
+from enso.events import EventManager
+from win32con import VK_CAPITAL
 
+from . import layout
+
+from enso import providers
 from enso import messages
 from enso import config
 from enso import input
@@ -67,11 +72,6 @@ from enso.quasimode.window import TheQuasimodeWindow
 # key codes to character strings.
 from enso.quasimode.charmaps import STANDARD_ALLOWED_KEYCODES \
     as ALLOWED_KEYCODES
-
-# Import functions to simulate keypresses so that we can sync the
-# Num Lock state when entering and exiting quasimode.
-from enso.platform.win32.selection import _ContextUtils \
-    as ContextUtils
 
 
 # ----------------------------------------------------------------------------
@@ -107,6 +107,9 @@ class Quasimode:
         """
         Initialize the quasimode.
         """
+
+        selectionModule = providers.getInterface("selection")
+        self.__contextUtils = getattr(selectionModule, "_ContextUtils", None)
 
         self.__cmdManager = commandManager
 
@@ -167,14 +170,18 @@ class Quasimode:
 
         self.__eventMgr.setModality( self.__isModal )
 
+        # To capture font styles, it is necessary to set color theme
+        # before the quasimode is loaded
+        layout.setColorTheme(config.COLOR_THEME)
+
     def setQuasimodeKeyByName( self, function_name, key_name ):
         # Sets the quasimode to use the given key (key_name must be a
         # string corresponding to a constant defined in the os-specific
         # input module) for the given function ( which should be one of
         # the KEYCODE_QUASIMODE_START/END/CANCEL constants also defined
         # in input.)
-        key_code = getattr( input, key_name )
-        assert( key_code, "Undefined quasimode key in config file." )
+        key_code = getattr( input, key_name, None )
+        #assert( key_code, "Undefined quasimode key in config file." )
         self.__eventMgr.setQuasimodeKeycode( function_name, key_code )
 
     def getQuasimodeKey( self ):
@@ -199,13 +206,18 @@ class Quasimode:
         """
 
         if eventType == input.EVENT_KEY_QUASIMODE:
-
             if keyCode == input.KEYCODE_QUASIMODE_START:
-                assert not self._inQuasimode
-                self.__quasimodeBegin()
+                if not self._inQuasimode:
+                    if self.__canEnterQuasimode():
+                        self.__quasimodeBegin()
+                    else:
+                        # a hack to turn off the quasimode state in the hook
+                        self.__eventMgr.leaveQuasimode()
+                        pass
             elif keyCode == input.KEYCODE_QUASIMODE_END:
-                assert self._inQuasimode
-                self.__quasimodeEnd()
+                #assert self._inQuasimode
+                if self._inQuasimode:
+                    self.__quasimodeEnd()
             elif keyCode == input.KEYCODE_QUASIMODE_CANCEL:
                 self.__suggestionList.clearState()
                 self.__quasimodeEnd()
@@ -237,22 +249,32 @@ class Quasimode:
             elif keyCode == input.KEYCODE_NUMLOCK:
                 # The user has pressed the Num Lock key.
                 self._numLockNow = not self._numLockNow
-            elif ALLOWED_KEYCODES.has_key( keyCode ):
-                # The user has typed a valid key to add to the userText.y
+            elif keyCode in ALLOWED_KEYCODES:
+                # The user has typed a valid key to add to the userText.
                 self.__addUserChar( keyCode )
             else:
                 # The user has pressed a key that is not valid.
                 pass
 
+    def __getShifftedChar( self, keyCode ):
+        if not (keyCode + 1000) in ALLOWED_KEYCODES or not GetKeyState(input.KEYCODE_SHIFT) < 0:
+            shift = 0
+        else:
+            shift = 1000
+
+        return ALLOWED_KEYCODES[keyCode + shift]
 
     def __addUserChar( self, keyCode ):
         """
         Adds the character corresponding to keyCode to the user text.
         """
-
         # Is the Shift key currently pressed? If it is, then allow
         # entering symbols such as "(" by pressing Shift + 9.
-        newCharacter = ALLOWED_KEYCODES[keyCode + (0 if not (keyCode+1000) in ALLOWED_KEYCODES or not GetKeyState(input.KEYCODE_SHIFT) < 0 else 1000)]
+        if config.LOCALIZED_INPUT and self.__contextUtils:
+            newCharacter = self.__contextUtils.translateKey(keyCode).lower()
+        else:
+            newCharacter = self.__getShifftedChar(keyCode)
+
         oldUserText = self.__suggestionList.getUserText()
         self.__suggestionList.setUserText( oldUserText + newCharacter )
 
@@ -363,8 +385,8 @@ class Quasimode:
         self.__suggestionList.clearState()
 
         # Sync the Num Lock state
-        if self._numLockStart != self._numLockNow:
-            ContextUtils.tapKey( input.KEYCODE_NUMLOCK )
+        if self.__contextUtils and self._numLockStart != self._numLockNow:
+            self.__contextUtils.tapKey( input.KEYCODE_NUMLOCK )
 
 
     def __executeCommand( self, cmd, cmdName ):
@@ -428,3 +450,18 @@ class Quasimode:
             caption = ""
 
         return caption
+
+    def __canEnterQuasimode(self):
+        result = True
+
+        try:
+            if self.__contextUtils:
+                if config.QUASIMODE_BYPASS_TO_RDP:
+                    foregroundClass = self.__contextUtils.getForegroundClassNameUnicode()
+
+                    if foregroundClass == "TscShellContainerClass":
+                        result = False
+        except:
+            pass
+
+        return result

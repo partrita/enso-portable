@@ -1,126 +1,111 @@
-## Enso Portable
+## Enso Launcher (Open-Source)
 
-A portable distribution of the *community* version of Humanized Enso Launcher for Windows with some additional commands
+A feature-rich descendant of Enso Community Edition (Microsoft Windows only). 
 
-(C) 2011-2012 g/christensen (gchristnsn@gmail.com)
+This is a development page. Please visit the main site at: https://gchristensen.github.io/enso-portable/
 
-v0.1.5
+#### Digitally signing Python binary to make Enso work properly with elevated processes
 
----
+**Prerequisites**
 
-<img src="https://raw.github.com/GChristensen/enso-portable/master/screen.jpg" />
+* Installed [Microsoft Visual Studio](https://visualstudio.microsoft.com) with Windows Platform SDK.
+Available for free on [virtual machines](https://developer.microsoft.com/en-us/windows/downloads/virtual-machines/) from Microsoft.
 
-Description: the Enso Launcher application allows to launch programs found in the Windows Start menu (or picked manually using the `learn as open' command) and perform many other operations with text command line 
-triggered by pressing the CAPSLOCK key. It's possible to create your own commands using the Python (version 2.5) programming language.
+**Signing Python**
 
-[Download](https://github.com/GChristensen/enso-portable/releases/download/0.1.5/enso-portable-0.1.5.zip) a portable binary distribution (no installation is required).
-Also available as a [7-zip archive](https://github.com/GChristensen/enso-portable/releases/download/0.1.5/enso-portable-0.1.5.7z)
+1. Install Enso to `C:\Program Files`
+2. Launch Visual Studio Developer Command Prompt *as Administrator*.
+3. Change the current directory to where you want to store the copy of the certificate file (appcert.cer).
+4. Execute the following command to create a self-issued digital certificate:
 
-####Notes
+`makecert -r -pe -n "CN=Application Certificate - For Use on This Machine Only" -ss PrivateCertStore appcert.cer`
 
-* There is no need to hold down the CAPSLOCK key as in the original version (it's only necessary to hit it once, the settings could be adjusted at the enso/config.py file).
+5. Import the certificate to the trusted root store with the following command:
 
-* Use the `help' command to get the list of available commands.
+`certmgr.exe -add appcert.cer -s -r localMachine root`
 
-* The GIT repository contains only the Enso source code without a Python interpreter, it's more convenient to use the binary package above (which includes a trimmed down Python interpreter) to develop your own commands, so you need only the Notepad to do this.
+NOTE: if you are signing on a virtual machine, you also need to import the certificate you have created 
+to the real machine. If you have no Visual Studio installed, launch the Certificate Manager (certmgr.msc),
+open and select `Trusted Root Certificate Authorities/Certificates`, and choose Actions -> All Tasks -> Import... menu item.
 
-* To add a new command you need to put a Python file with its source code into the `commands' folder under the Enso root directory (see the [docs](https://github.com/GChristensen/enso-portable/blob/master/enso/docs/enso-docs.txt) on command authoring).
+6. Issue the command below to sign the Python binary:
 
-####Background
+`SignTool sign /v /s PrivateCertStore /n "Application Certificate - For Use on This Machine Only" "C:\Program Files\Enso Launcher\python\pythonu.exe"`
 
-I haven't found any Enso command package suitable for my needs, so I decided to make my own one. If you like Enso, you can use the source code freely as you wish, see more at the [Enso Launcher page](http://humanized.com/enso/launcher) (the original application is orphaned now).
-The source code of the original community Enso application could be found here:
-[https://launchpad.net/enso/community-enso](https://launchpad.net/enso/community-enso) (also probably orphaned).
+NOTE: pythonu.exe is a Python binary with the application manifest option `UIAccess` set to `ture`. 
+Because Enso is a modeless application, it needs this option to get input when elevated processes are in the foreground.
+This version of Python is launched only if it is properly signed and Enso is installed at `C:\Program Files`. 
 
-####Dependencies
+#### Required dependencies
 
-* Abbyy Lingvo dictionary software (optional)
+The Python interpreter used to run Enso Launcher requires the following dependencies:
 
+* [pywin32](https://github.com/mhammond/pywin32)
+* [flask](https://flask.palletsprojects.com/)
 
-####Additional functionality not found in the original Enso
+#### Building platform code
 
-* Ability to restart using a tray menu item or the `enso restart' command
+Follow the [platform build instructions](platform/README.win32) and use the makefile 
+(compatible with [Mingw](http://www.mingw.org) or [Mingw-w64](https://mingw-w64.org)
+mingw32-make) to build and copy binaries to the proper destination. 
 
+#### The original source code
 
-####Additional Commands 
+The original source code of **Enso Community Edition** could be found here:
+[https://launchpad.net/enso/community-enso](https://launchpad.net/enso/community-enso) (you can download the original source without installing bazaar by using [this](https://bazaar.launchpad.net/%7Ecommunityenso/enso/community-enso/tarball/145?start_revid=145) link).
 
->>**session.py**
+#### Mediaprobes
 
->>>Session/Power management commands (self explanatory):
-      
->>>* log off
-* shut down
-* reboot
-* suspend
-* hibernate
+Mediaprobes allow to create commands that automatically pass items found in filesystem 
+(or listed in a dictionary) to the specified program. Let's assume that you have a directory 
+named 'd:/tv-shows', which contains subdirectories: 'columbo', 'the octopus' and 'inspector gadget'.
+Let's create a command named 'show' that has the names of all subdirectories under 'd:/tv-shows'
+as arguments (the argument will be named "series") and opens the given directory (or file) in 
+Media Player Classic.
 
->>**system.py**
+```python
+# place the following into command editor
 
->>>System commands:
+from enso.user import mediaprobe
 
->>>* kill [process name or id] - kill a process using its executable name
-                                   (without extension) or id
+cmd_show = mediaprobe.directory_probe("show", "d:/tv-shows", "<absolute path to MPC-HC>")
+```
+That's all. The command will have the following additional arguments:
 
->>**dial.py**
+    what - lists available arguments.
+    next - open the next show in the player.
+    prev - open the previous show in the player.
+    all - pass 'd:/tv-shows' to the player.
 
->>>Dial-up network related commands:
-  
->>>* dial [connection name] - connect to the Internet using a dialup connection
-* hangup [connection name] - close an Internet connection
+It is possible to create probe commands based on a dictionary:
 
->>**idgen.py**
+```python
+what_to_watch = {"formula 1": "<a link to my favorite formula 1 stream>",
+                 "formula e": "<a link to my favorite formula e stream>"}
+cmd_watch = mediaprobe.dictionary_probe("stream", what_to_watch, "<absolute path to my network player>")
+```
 
->>>Generate a UUID in several formats (upper/lower case, numeric):
+If player does not accept directories (as, for example, ACD See does), it is possible to pass a first file in the directory specified at a dictionary:
 
->>>* guid [format]
+```python
+what_to_stare_at = {'nature': 'd:/images/nature',
+                    'cosmos': 'd:/images/cosmos'}
 
->>>Generate a random number in the Int32 positive range [0, 2147483646].
-    It's possible to narrow the range using command arguments:
+# if player is not specified, the command will use the default system application 
+# associated with the encountered file type
+cmd_stare = mediaprobe.findfirst_probe("at", what_to_stare_at)
+```
 
->>>* random [from num to num]
+Of course, you may construct dictionaries in various ways.
 
->>**lingvo.py**
+#### License
 
->>>Control Abbyy Lingvo dictionary software with Enso Launcher. It's possible to specify translation direction attributes, see command help for the details.
-     
->>>* lingvo [word from lang to lang] - translate a word
->>>* quit lingvo - close Lingvo
+This fork of Enso Launcher combines code under BSD and MPL licenses. Currently the only MPL-licensed part is the 
+markup of the settings UI pages. It is possible to disable web-based option pages in the config.py if necessary.
 
->>**mount.py** <font color="red">warning: does not work out of the box, hacking required</font>
-
->>>A set of shortcuts to [un]mount TrueCrypt volumes:
-
->>>* truecrypt mount [letter] - mount a truecrypt volume assigned to the specified letter 
-* truecrypt umount - unmount all mounted volumes
-
->>**dd_wrt.py** <font color="red">warning: does not work out of the box, hacking required</font>
-
->>>A set of dd-wrt shortcut commands (requires terminal access to a [dd-wrt](http://www.dd-wrt.com) router):
-
->>>* wake slave - send a magic packet to a workstation with MAC address hardcoded in the command file
-
->>>* switch wireless - turn wireless radio on/off
-
->>>* wan reconnect - reconnect the ppoe daemon (may be useful to get a new IP from a dynamic pool)
-
-####Known Issues
-
-* The trigger key will not show the command line if Windows Taskbar is under the focus.
-
-####Change Log
-
-#####15.10.2012
-
-* Fixed `help' command, internal fixes [Brian Peiris]
-
-#####05.01.2015
-
-* Additional symbols in calc command (+, -, etc.) [thodan]
-* Fixed `close' command [Caleb John]
-* Fixed `website' command (by adding `simplejson' library)
-
-####Contributors
+#### Contributors
 
 * [Brian Peiris](https://github.com/brianpeiris)
 * [thdoan](https://github.com/thdoan)
 * [Caleb John](https://github.com/CalebJohn)
+* [Mark Wiseman](https://github.com/mawiseman)

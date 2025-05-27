@@ -29,9 +29,12 @@
 
 import os
 import sys
+import time
 import atexit
 import win32event
 import enso.platform
+import enso.config
+from enso.messages import displayMessage
 
 if not sys.platform.startswith("win"):
     raise enso.platform.PlatformUnsupportedError()
@@ -43,7 +46,7 @@ os.environ["PATH"] = "%s;%s" % (os.path.abspath( __path__[0] ), os.environ["PATH
 
 
 # single instance limiting mutex (used in run-enso.exe)
-limiting_mutex = win32event.CreateMutex(None, 0, "__enso_portable__")
+limiting_mutex = win32event.CreateMutex(None, 0, "__enso_open_source__")
 
 
 def get_script_folder_name():
@@ -81,4 +84,3 @@ def provideInterface( name ):
         return get_script_folder_name
     else:
         return None
-

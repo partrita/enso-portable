@@ -11,7 +11,6 @@ import unicodedata
 from enso.commands import CommandManager, CommandObject
 import logging
 
-
 import ctypes
 from ctypes import *
 from ctypes.wintypes import HWND #, RECT, POINT
@@ -32,12 +31,12 @@ def _stdcall(dllname, restype, funcname, *argtypes):
 
         def decorated(*args, **kw):
             iterator = func(*args, **kw)
-            nargs = iterator.next()
+            nargs = next(iterator)
             if not isinstance(nargs, tuple):
                 nargs = (nargs,)
             try:
                 res = api(*nargs)
-            except Exception, e:
+            except Exception as e:
                 return iterator.throw(e)
             return iterator.send(res)
         return decorated
@@ -113,7 +112,7 @@ class GoCommand(CommandObject):
             # return unicode string.
             win_title = GetWindowText(found_win)
             # Removing all accents from characters
-            win_title = unicodedata.normalize('NFKD', win_title).encode('ascii', 'ignore')
+            win_title = unicodedata.normalize('NFKD', win_title)#.encode('ascii', 'ignore')
 
             # Get PID so we can get process name
             _, process_id = win32process.GetWindowThreadProcessId(found_win)
@@ -128,7 +127,7 @@ class GoCommand(CommandObject):
                 pexe = os.path.normcase(os.path.normpath(pexe))
                 # Remove extension
                 process, _ = os.path.splitext(os.path.basename(pexe))
-            except Exception, e:
+            except Exception as e:
                 pass
             
             # Add hwnd and title to the list
@@ -140,38 +139,62 @@ class GoCommand(CommandObject):
         win32gui.EnumWindows(callback, self.windows)
 
         #print sorted(map(lambda x: str(x[1]).lower(), self.windows))
-        self.valid_args = sorted(map(lambda x: xml.sax.saxutils.escape(x[1].lower()), self.windows))
+        self.valid_args = sorted([xml.sax.saxutils.escape(x[1].lower()) for x in self.windows])
 
 
     def __call__(self, ensoapi, window = None):
         if window is None:
             return None
+
         logging.debug("Go to window '%s'" % window)
+
         for hwnd, title in self.windows:
             title = xml.sax.saxutils.escape(title).lower()
+
             if title == window:
                 try:
-                    #windowPlacement = win32gui.GetWindowPlacement(hwnd)
-                    #showCmd = windowPlacement[1]
-                    #print showCmd
-                    #if showCmd == SW_RESTORE:
-                    #    win32gui.ShowWindow(hwnd, SW_RESTORE)
-                    #else:
-                    #    win32gui.BringWindowToTop(hwnd)
-                    
-                    if win32gui.IsIconic(hwnd):
-                        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-                    win32gui.SetForegroundWindow(hwnd)
-                except Exception, e:
+                    dwCurrentThread = win32api.GetCurrentThreadId()
+                    dwFGWindow = win32gui.GetForegroundWindow()
+                    [dwFGThread, _] = win32process.GetWindowThreadProcessId(dwFGWindow)
+                    ctypes.windll.user32.AttachThreadInput(dwCurrentThread, dwFGThread, 1)
+
+                    try:
+                        if win32gui.IsIconic(hwnd):
+                            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+
+                        win32gui.SetWindowPos(hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE + win32con.SWP_NOSIZE)
+                        win32gui.SetWindowPos(hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0, win32con.SWP_NOMOVE + win32con.SWP_NOSIZE)
+                        win32gui.SetWindowPos(hwnd, win32con.HWND_NOTOPMOST, 0, 0, 0, 0, win32con.SWP_SHOWWINDOW + win32con.SWP_NOMOVE + win32con.SWP_NOSIZE)
+
+                        try:
+                            win32gui.SetForegroundWindow(hwnd)
+                        except Exception as e: 
+                            print(e)
+
+                        try:
+                            win32gui.SetFocus(hwnd)
+                        except Exception as e:
+                            print(e)
+
+                        try:
+                            win32gui.SetActiveWindow(hwnd)
+                        except Exception as e: 
+                            print(e)
+
+                    finally:
+                        ctypes.windll.user32.AttachThreadInput(dwCurrentThread, dwFGThread, 0)                
+
+                except Exception as e:
+                    print(e)
                     if e[0] == 0:
                         time.sleep(0.2)
                         try:
                             win32gui.SetForegroundWindow(hwnd)
-                        except Exception, e:
+                        except Exception as e:
                             time.sleep(0.2)
                             try:
                                 win32gui.BringWindowToTop(hwnd)
-                            except Exception, e:
+                            except Exception as e:
                                 pass
                     elif e[0] == 2:
                        pass

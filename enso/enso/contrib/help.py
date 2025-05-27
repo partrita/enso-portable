@@ -39,15 +39,16 @@
 # ----------------------------------------------------------------------------
 # Imports
 # ----------------------------------------------------------------------------
-from __future__ import with_statement
+
 
 import os
 import webbrowser
 import tempfile
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import atexit
 import logging
 
+from enso import config, webui
 from enso.commands import CommandManager, CommandObject
 from enso.contrib.scriptotron.tracebacks import safetyNetted
 
@@ -112,14 +113,14 @@ class DefaultHtmlHelp( object ):
             fileobj.write( "<h1>Enso Help</h1>" )
 
             fileobj.write( "<ul>" )
-            for name, command in self._cmdMan.getCommands().items():
+            for name, command in list(self._cmdMan.getCommands().items()):
                 fileobj.write( "<li>" )
                 fileobj.write( "<a href=\"#%s\">%s</a>" % (name, name) )
                 fileobj.write( "</li>" )
             fileobj.write( "</ul>" )
                 
 
-            for name, command in self._cmdMan.getCommands().items():
+            for name, command in list(self._cmdMan.getCommands().items()):
 
                 fileobj.write( "<h2 id=\"%s\">%s</h2>" % (name, name) )
 
@@ -128,8 +129,8 @@ class DefaultHtmlHelp( object ):
 
                 helpText = command.getHelp()
                 if not helpText:
-                    helpText = "This command has no help content."
-                helpText = helpText.encode( "utf-8", "xmlcharrefreplace" )
+                    helpText = "" #"This command has no help content."
+                #helpText = helpText.encode( "utf-8", "xmlcharrefreplace" )
 
                 fileobj.write( "<p>%s</p>" %  helpText )
 
@@ -137,12 +138,12 @@ class DefaultHtmlHelp( object ):
 
     def view( self ):
         self._render()
-        fileUrl = "file:%s" % urllib.pathname2url( self.filename )
+        fileUrl = "file:%s" % urllib.request.pathname2url( self.filename )
         # Catch exception, because webbrowser.open sometimes raises exception
         # without any reason
         try:
             webbrowser.open( fileUrl )
-        except WindowsError, e:
+        except WindowsError as e:
             logging.warning(e)
 
     def _finalize( self ):
@@ -169,7 +170,10 @@ class HelpCommand( CommandObject ):
 
     @safetyNetted
     def run( self ):
-        self.__htmlHelp.view()
+        if config.ENABLE_WEB_UI:
+            os.startfile("http://" + webui.HOST + ":" + str(webui.PORT) + "/commands.html")
+        else:
+            self.__htmlHelp.view()
 
 
 # ----------------------------------------------------------------------------

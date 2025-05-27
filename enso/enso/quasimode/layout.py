@@ -40,6 +40,7 @@
 # Imports
 # ----------------------------------------------------------------------------
 
+from enso import config
 from enso import graphics
 from enso.graphics import xmltextlayout
 from enso.utils.xml_tools import escape_xml
@@ -77,6 +78,16 @@ DESIGNER_GREEN = "#9fbe57"
 DARK_GREEN = "#7f9845"
 BLACK = "#000000"
 
+COLOR_THEMES = {
+    'default' : ("#ffffff", "#9fbe57", "#7f9845", "#000000"),
+    'green' : ("#ffffff", "#9fbe57", "#7f9845", "#000000"),
+    'orange' : ("#ffffff", "#be9f57", "#987f45", "#000000"),
+    'magenta' : ("#ffffff", "#be579f", "#98457f", "#000000"),
+    'cyan' : ("#ffffff", "#99cccc", "#99aaaa", "#000000"),
+    'red' : ("#ffffff", "#cc0033", "#ff0066", "#000000"),
+    'amethyst' : ("#ffffff", "#af69ee", "#9966cb", "#000000")
+}
+
 # Add alpha values to get transparent backgrounds.
 DESCRIPTION_BACKGROUND_COLOR = DESIGNER_GREEN + "cc"
 MAIN_BACKGROUND_COLOR = BLACK + "d8"
@@ -92,6 +103,21 @@ SUGGESTION_SCALE = SMALL_SCALE
 # Style Registries
 # ----------------------------------------------------------------------------
 
+def setColorTheme(color = None):
+    """ Change Enso color theme to %s """
+    if not color:
+        return
+    
+    global WHITE, DESIGNER_GREEN, DARK_GREEN, BLACK, DESCRIPTION_BACKGROUND_COLOR, MAIN_BACKGROUND_COLOR
+
+    WHITE = COLOR_THEMES[color][0]
+    DESIGNER_GREEN = COLOR_THEMES[color][1]
+    DARK_GREEN = COLOR_THEMES[color][2]
+    BLACK = COLOR_THEMES[color][3]
+    DESCRIPTION_BACKGROUND_COLOR = DESIGNER_GREEN + "cc"
+    MAIN_BACKGROUND_COLOR = BLACK + "d8"
+
+
 def _newLineStyleRegistry():
     """
     Creates a new style registry for laying out one of the quasimode's
@@ -101,7 +127,7 @@ def _newLineStyleRegistry():
     styles = xmltextlayout.StyleRegistry()
     styles.add( 
         "document",
-        font_family = "Gentium",
+        font_family = config.UI_FONT,
         font_style = "normal",
         max_lines = "1",
         )

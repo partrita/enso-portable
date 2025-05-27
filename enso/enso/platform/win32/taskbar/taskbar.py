@@ -8,14 +8,14 @@ import win32con
 import win32gui
 import winerror
 
-from inspect import getargspec
-
 
 class SysTrayIcon(object):
 
     MENU_ITEM_ID_ABOUT = 1023
     MENU_ITEM_ID_EXIT = 1024
     free_menu_id = 1025
+
+    CMD_FINALIZE = 2000
 
     def __init__(self,
                  icon,
@@ -54,7 +54,7 @@ class SysTrayIcon(object):
         # Don't blow up if class already registered to make testing easier
         try:
             self.class_atom = win32gui.RegisterClass(self._window_class)
-        except win32gui.error, err_info:
+        except win32gui.error as err_info:
             if err_info.winerror != winerror.ERROR_CLASS_ALREADY_EXISTS:
                 raise
 
@@ -134,8 +134,8 @@ class SysTrayIcon(object):
         self._create_icons()
 
     def _on_destroy(self, hwnd, msg, wparam, lparam):
-        win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, self.notify_id)
         win32gui.PostQuitMessage(0) # Terminate the current thread.
+        win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, self.notify_id)
 
     def _on_taskbar_notify(self, hwnd, msg, wparam, lparam):
         if lparam == win32con.WM_LBUTTONUP:
@@ -159,17 +159,18 @@ class SysTrayIcon(object):
         elif id == self.MENU_ITEM_ID_EXIT:
             if self.on_quit:
                 self.on_quit(self)
+        elif id == self.CMD_FINALIZE:
             win32gui.DestroyWindow(self.hwnd)
             win32gui.UnregisterClass(self.class_atom, self._window_class.hInstance)
-        elif id in self.custom_menu_items.keys():
+        elif id in list(self.custom_menu_items.keys()):
             if callable(self.custom_menu_items[id]['func']):
                 try:
                     self.custom_menu_items[id]['func'](self)
-                except Exception, e:
+                except Exception as e:
                     logging.error("Error executing menu item func: %s" % self.custom_menu_items[id]['text'])
                     logging.error(e)
         else:
-            print "Unknown command -", id
+            print("Unknown command -", id)
 
 
     def on_quit(self, systray):
@@ -189,12 +190,12 @@ class SysTrayIcon(object):
         menu = win32gui.CreatePopupMenu()
         win32gui.AppendMenu( menu, win32con.MF_STRING, 1023, "About")
         if len(self.custom_menu_items) > 0:
-            for menu_item in self.custom_menu_items.itervalues():
+            for menu_item in self.custom_menu_items.values():
                 if callable(menu_item['func']):
                     try:
                         is_checked = menu_item['func'](self, get_state = True)
-                    except Exception, e:
-                        print e
+                    except Exception as e:
+                        print(e)
                 else:
                     is_checked = False
                 flags = win32con.MF_STRING | (win32con.MF_CHECKED if is_checked else 0)
@@ -212,7 +213,7 @@ class SysTrayIcon(object):
     def add_menu_item(self, text, func):
         assert len(text) > 0
         assert callable(func)
-        assert len(getargspec(func)[0]) == 2 and getargspec(func)[0][1] == 'get_state', "Second function argument must be 'get_state'"
+        #assert len(getargspec(func)[0]) == 2 and getargspec(func)[0][1] == 'get_state', "Second function argument must be 'get_state'"
         self.custom_menu_items[self.free_menu_id] = { 'id':self.free_menu_id, 'text':text, 'func':func }
         self.free_menu_id += 1
 

@@ -45,6 +45,7 @@
 import inspect
 import sys
 
+from inspect import Signature
 
 # ----------------------------------------------------------------------------
 # Functionality
@@ -71,7 +72,7 @@ def finalizeWrapper( origFunc, wrappedFunc, decoratorName ):
     Returns the wrapped function.
     """
 
-    if sys.modules.has_key( "pychecker" ):
+    if "pychecker" in sys.modules:
         # If pychecker is in sys.modules, then we can assume that our
         # code is being checked by pychecker.  If this is the case,
         # then we just want to return the original function, because
@@ -79,13 +80,8 @@ def finalizeWrapper( origFunc, wrappedFunc, decoratorName ):
         return origFunc
 
     # Get a prettified representation of the argument list.
-    args, varargs, varkw, defaults = inspect.getargspec( origFunc )
-    argspec = inspect.formatargspec(
-        args,
-        varargs,
-        varkw,
-        defaults
-        )
+    sig = inspect.signature(origFunc)
+    argspec = str(sig)
 
     callspec = "%s%s" % ( origFunc.__name__, argspec )
 

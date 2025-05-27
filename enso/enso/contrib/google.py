@@ -40,7 +40,7 @@
 # Imports
 # ----------------------------------------------------------------------------
 
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import locale
 import webbrowser
 
@@ -71,8 +71,8 @@ class GoogleCommand( CommandObject ):
         self.parameter = parameter
 
         if parameter != None:
-            self.setDescription( u"Performs a Google web search for "
-                                 u"\u201c%s\u201d." % parameter )
+            self.setDescription( "Performs a Google web search for "
+                                 "\u201c%s\u201d." % parameter )
         
     @safetyNetted
     def run( self ):
@@ -90,15 +90,15 @@ class GoogleCommand( CommandObject ):
         MAX_QUERY_LENGTH = 2048
 
         if self.parameter != None:
-            text = self.parameter.decode()
+            text = self.parameter
             # '...' gets replaced with current selection
             if "..." in text:
                 seldict = selection.get()
                 text = text.replace(
-                    "...", seldict.get( "text", u"" ).strip().strip("\0"))
+                    "...", seldict.get( "text", "" ).strip().strip("\0"))
         else:
             seldict = selection.get()
-            text = seldict.get( "text", u"" )
+            text = seldict.get( "text", "" )
 
         text = text.strip().strip("\0")
         if not text:
@@ -120,7 +120,7 @@ class GoogleCommand( CommandObject ):
 
         # The following is standard convention for transmitting
         # unicode through a URL.
-        text = urllib.quote_plus( text.encode("utf-8") )
+        text = urllib.parse.quote_plus( text.encode("utf-8") )
 
         finalQuery = BASE_URL % text
 
@@ -131,7 +131,7 @@ class GoogleCommand( CommandObject ):
             # without any reason
             try:
                 webbrowser.open_new_tab( finalQuery )
-            except WindowsError, e:
+            except WindowsError as e:
                 logging.warning(e)
 
 
@@ -143,6 +143,9 @@ class GoogleCommandFactory( ArbitraryPostfixFactory ):
     HELP_TEXT = "search terms"
     PREFIX = "google "
     NAME = "google {search terms}"
+
+    # added to unify command name retrieval
+    cmdName = "google"
     
     def _generateCommandObj( self, postfix ):
         if postfix:

@@ -32,35 +32,61 @@
 #
 # ----------------------------------------------------------------------------
 
-import os
-import sys
-
-enso_dir = os.path.dirname(os.path.realpath(__file__))
-enso_dir = os.path.dirname(enso_dir)
-sys.path.append(enso_dir)
-
-enso_executable = enso_dir + "\\run-enso"
-
+import os, threading, logging
+from . import config
 
 def run():
     """
     Initializes and runs Enso.
     """
 
-    from enso.events import EventManager
-    from enso.quasimode import Quasimode
-    from enso import events, plugins, config, quasimode, webui
+    from . import messages, plugins, webui
+    from .events import EventManager
+    from .quasimode import layout, Quasimode
 
     eventManager = EventManager.get()
     Quasimode.install( eventManager )
     plugins.install( eventManager )
 
-    def showWelcomeMessage():
+    def initEnso():
         msgXml = config.OPENING_MSG_XML
-        if msgXml != None:
+        if msgXml is not None and not config.ENSO_IS_QUIET:
             messages.displayMessage( msgXml )
 
-    webui.start(eventManager)
-    
-    eventManager.registerResponder( showWelcomeMessage, "init" )
-    eventManager.run()
+        runTasks()
+
+    if config.ENABLE_WEB_UI:
+        webui.start()
+
+    eventManager.registerResponder( initEnso, "init" )
+
+    try:
+        eventManager.run()
+    except KeyboardInterrupt:
+        webui.stop()
+    except Exception as e:
+        logging.error(e)
+        webui.stop()
+
+    if not config.ENSO_IS_QUIET:
+        messages.displayMessage(config.CLOSING_MSG_XML)
+
+
+def runTasks():
+    class Tasks(threading.Thread):
+        def run(self):
+            tasksFilePath = os.path.join(config.ENSO_USER_DIR, "tasks.py")
+
+            if os.path.exists(tasksFilePath):
+                try:
+                    with open( tasksFilePath, "r" ) as tasksFile:
+                        contents = tasksFile.read()
+                        compiled = compile( contents + "\n", tasksFilePath, "exec" )
+                    exec(compiled, {}, {})
+                except Exception:
+                    from .contrib.scriptotron.tracebacks import TracebackCommand
+                    TracebackCommand.setTracebackInfo()
+
+    tasks = Tasks()
+    tasks.daemon = True
+    tasks.start()

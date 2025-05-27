@@ -23,6 +23,7 @@ class TransparentWindow( object ):
 
     def makeCairoContext( self ):
         context = cairo.Context( self._impl.makeCairoSurface() )
+
         convertUserSpaceToPoints( context )
         return context
 
@@ -63,3 +64,6 @@ class TransparentWindow( object ):
     def getMaxHeight( self ):
         return pixelsToPoints( self._impl.getMaxHeight() )
 
+    def setForeground(self):
+        if hasattr(self._impl, 'setForeground'):
+            return self._impl.setForeground()

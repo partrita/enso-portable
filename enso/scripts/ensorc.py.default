@@ -1,0 +1,8 @@
+# Allow non-latin characters in Enso input
+LOCALIZED_INPUT = True
+# Launch Universal Windows Platform apps
+LOAD_UWP_APPS = True
+# Determines should the Quasimode be sticky
+IS_QUASIMODE_MODAL = True
+# Useful if you have a top- or left- positioned Windows taskbar
+APPEAR_OVER_TASKBAR = True
